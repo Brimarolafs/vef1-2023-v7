@@ -126,6 +126,7 @@ const cart = {
  */
 function formatPrice(price) {
   /* Útfæra */
+  return new Intl.NumberFormat('is-IS', { style: 'currency', currency: 'ISK' }).format(price);
 }
 
 /**
@@ -137,6 +138,7 @@ function formatPrice(price) {
  */
 function validateInteger(num, min = 0, max = Infinity) {
   /* Útfæra */
+  return Number.isInteger(num) && num >= min && num <= max;
 }
 
 /**
@@ -152,6 +154,17 @@ function validateInteger(num, min = 0, max = Infinity) {
  */
 function formatProduct(product, quantity = undefined) {
   /* Útfæra */
+  const { title, price } = product;
+  const formattedPrice = formatPrice(price);
+  if (quantity === undefined) {
+    return `${title} — ${formattedPrice}`;
+  }
+  const total = formatPrice(price * quantity);
+  return `${title} — ${quantity}x${formattedPrice} samtals ${total}`;
+}
+
+function cartTotal (cart) {
+  return cart.lines.reduce((sum, line) => sum + line.product.price * line.quantity, 0);
 }
 
 /**
@@ -167,6 +180,7 @@ function formatProduct(product, quantity = undefined) {
  */
 function cartInfo(cart) {
   /* Útfæra */
+  console.info(cart.lines.map((line) => formatProduct(line.product, line.quantity)).join('\n'))
 }
 
 // --------------------------------------------------------
@@ -257,9 +271,11 @@ function addProduct() {
  * ```
  * @returns undefined
  */
-function showProducts() {
+
+function showProducts(product) {
   /* Útfæra */
-  /* Hér ætti að nota `formatPrice` hjálparfall */
+  const { title, price } = product;
+  return `${product.id} ${product.title} — ${product.description} — ${product.price} kr.`;
 }
 
 /**
@@ -279,10 +295,53 @@ function showProducts() {
  */
 function addProductToCart() {
   /* Útfæra */
+  const idAsString = prompt('Auðkenni vöru:');
+  if (!idAsString) {
+    console.error('Auðkenni vöru má ekki vera tómt.');
+    return;
+  }
 
-  /* Hér ætti að nota `validateInteger` hjálparfall til að staðfesta gögn frá notanda */
+  const id = Number.parseInt(idAsString, 10);
+  if (!validateInteger(id, 1)) {
+    console.error('Auðkenni vöru er ekki löglegt, verður að vera heiltala stærri en 0.');
+    return;
+  }
+
+  const product = findById(products, id);
+  if (!product) {
+    console.error('Vara fannst ekki.');
+    return;
+  }
+
+  const quantityAsString = prompt('Fjöldi:');
+  if (!quantityAsString) {
+    console.error('Fjöldi má ekki vera tómur.');
+    return;
+  }
   
-  /* Til að athuga hvort vara sé til í `cart` þarf að nota `cart.lines.find` */
+  const quantity = Number.parseInt(quantityAsString, 10);
+  if (!validateInteger(quantity, 1, 99)) {
+    console.error('Fjöldi er ekki löglegur, lágmark 1 og hámark 99.');
+    return;
+  }
+
+  const line = findLine(cart, id);
+  if (line) {
+    line.quantity += quantity;
+  }
+  else {
+    cart.lines.push({ product, quantity });
+  }
+
+  console.info(`Vara bætt við körfu:\n${formatProduct(product, quantity)}`);
+}
+
+function findById(array, id) {
+  return array.find((item) => item.id === id);
+}
+
+function findLine(cart, id) {
+  return cart.lines.find((line) => line.product.id === id);
 }
 
 /**
@@ -299,6 +358,15 @@ function addProductToCart() {
  */
 function showCart() {
   /* Útfæra */
+  const { lines } = cart;
+  if (lines.length === 0) {
+    console.info('Karfan er tóm.');
+    return;
+  }
+
+  const products = lines.map((line) => formatProduct(line.product, line.quantity));
+  const total = formatPrice(cartTotal(cart));
+  console.info(`Vara í körfu:\n${products.join('\n')}\nSamtals: ${total}`);
 }
 
 /**
@@ -321,4 +389,25 @@ function showCart() {
  */
 function checkout() {
   /* Útfæra */
+  const { lines } = cart;
+  if (lines.length === 0) {
+    console.info('Karfan er tóm.');
+    return;
+  }
+
+  const name = prompt('Nafn:');
+  if (!name) {
+    console.error('Nafn má ekki vera tómt.');
+    return;
+  }
+
+  const address = prompt('Heimilisfang:');
+  if (!address) {
+    console.error('Heimilisfang má ekki vera tómt.');
+    return;
+  }
+
+  const products = lines.map((line) => formatProduct(line.product, line.quantity));
+  const total = formatPrice(cartTotal(cart));
+  console.info(`Pöntun móttekin ${name}.\nVörur verða sendar á ${address}.\n\nVara í körfu:\n${products.join('\n')}\nSamtals: ${total}`);
 }
