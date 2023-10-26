@@ -272,11 +272,14 @@ function addProduct() {
  * @returns undefined
  */
 
-function showProducts(product) {
+function showProducts() {
   /* Útfæra */
-  const { title, price } = product;
-  return `${product.id} ${product.title} — ${product.description} — ${product.price} kr.`;
+  for (let product of products) {
+    const productString = `#${product.id} ${product.title} — ${product.description} — ${product.price} kr.`;
+    console.log(productString);
+  }
 }
+
 
 /**
  * Bæta vöru við körfu.
